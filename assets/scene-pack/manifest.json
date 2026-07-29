@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "pack_id": "yeshuang-canonical-2026-07-29",
+  "name": "夜霜动作视频包",
+  "base": {
+    "src": "assets/scene-pack/base/yeshuang-base.png",
+    "width": 1536,
+    "height": 1024,
+    "sha256": "fa107b500b77b3d2632fc8f21dc2c03a17630757246c69af22df7d7b9918d042"
+  },
+  "layout": {
+    "fit": "contain",
+    "position": "right center",
+    "voice_anchor": {
+      "x": 0.19531,
+      "y": 0.45508
+    }
+  },
+  "playback": {
+    "transition_ms": 420,
+    "mode_transition_ms": 220,
+    "idle_gap_ms": [
+      2600,
+      5200
+    ],
+    "safe_start_seconds": 0
+  },
+  "clips": [
+    {
+      "id": "idle-blink-01",
+      "state": "idle",
+      "action": "blink",
+      "src": "assets/scene-pack/clips/idle/idle-blink-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 2.58,
+      "fps": 24,
+      "width": 1536,
+      "height": 1024,
+      "action_window_seconds": [
+        0,
+        0.33
+      ],
+      "sha256": "ddb3be49b8dbe6f46037fdecab59ce044750076cf632430d08dc235436599044",
+      "source_note": "首尾一致能循环_夜霜安静地用手托着脸_保持原有姿势_胸口随着_2026-07-29T13-37-25.mp4"
+    },
+    {
+      "id": "idle-blink-02",
+      "state": "idle",
+      "action": "blink",
+      "src": "assets/scene-pack/clips/idle/idle-blink-02.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 4.33,
+      "fps": 24,
+      "width": 1536,
+      "height": 1024,
+      "action_window_seconds": [
+        1.25,
+        1.57
+      ],
+      "sha256": "eb1b93b88cb8e6b797ee7d07a5aa6e69396c1e83c0ea71ce03cc0e0728423cf8",
+      "source_note": "一位名叫夜霜的银蓝色长发少女_安静地用手托着脸颊_保持原有姿_2026-07-29T14-02-52.mp4"
+    }
+  ]
+}

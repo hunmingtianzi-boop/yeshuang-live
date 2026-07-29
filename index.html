@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b1018" />
+    <meta name="description" content="夜霜桌面程序封面 UI 与动作视频协作预览" />
+    <title>夜霜 | 封面 UI 协作预览</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">跳到主要内容</a>
+    <div class="scene-layer" id="sceneLayer" aria-hidden="true">
+      <img
+        class="scene-base"
+        id="sceneBase"
+        src="./assets/scene-pack/base/yeshuang-base.png"
+        width="1536"
+        height="1024"
+        alt=""
+      />
+      <div id="sceneVideoMount"></div>
+      <audio
+        id="backgroundMusic"
+        src="./assets/yeshuang-scene-a.mp4"
+        autoplay
+        loop
+        preload="auto"
+      ></audio>
+      <canvas class="star-field" id="starField"></canvas>
+      <div class="scene-vignette"></div>
+      <div class="scene-grain"></div>
+    </div>
+
+    <div class="app-shell" id="appShell" data-ready="false">
+      <header class="app-bar">
+        <div class="app-bar-status" aria-label="场景控制">
+          <button class="icon-button" id="soundToggle" type="button" aria-label="切换背景音乐" title="背景音乐">
+            <span aria-hidden="true">◖))</span>
+          </button>
+          <button class="icon-button" id="refreshButton" type="button" aria-label="刷新状态" title="刷新状态">
+            <span aria-hidden="true">↺</span>
+          </button>
+          <button class="icon-button" id="fullscreenToggle" type="button" aria-label="切换全屏" title="全屏">
+            <span aria-hidden="true">⛶</span>
+          </button>
+          <button class="icon-button" id="quietToggle" type="button" aria-label="切换静谧模式" title="静谧模式">
+            <span aria-hidden="true">☾</span>
+          </button>
+          <button class="icon-button icon-button-close" id="closeAppButton" type="button" aria-label="关闭夜霜" title="关闭夜霜">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+      </header>
+
+      <aside class="navigation" aria-label="主导航">
+        <a class="brand" href="#overview" aria-label="回到夜霜主页">
+          <small>✦ YE SHUANG</small>
+          <span class="brand-rule" aria-hidden="true"></span>
+          <strong>夜霜</strong>
+          <em>Ye Shuang</em>
+        </a>
+
+        <div class="brand-copy">
+          <p>她像夜色本身，<br />危险而迷人。<br />不被任何人定义，<br />也不属于任何人。</p>
+          <small>Like the night itself,<br />dangerous and fascinating.</small>
+        </div>
+
+        <nav>
+          <button class="nav-item is-active" type="button" data-view="overview">
+            <span class="nav-glyph" aria-hidden="true">01</span>
+            <span>主页</span>
+          </button>
+          <button class="nav-item" type="button" data-view="chat">
+            <span class="nav-glyph" aria-hidden="true">02</span>
+            <span>对话</span>
+          </button>
+          <button class="nav-item" type="button" data-view="diary">
+            <span class="nav-glyph" aria-hidden="true">03</span>
+            <span>日记</span>
+          </button>
+          <button class="nav-item" type="button" data-view="life">
+            <span class="nav-glyph" aria-hidden="true">04</span>
+            <span>生活流</span>
+          </button>
+          <button class="nav-item" type="button" data-view="memory">
+            <span class="nav-glyph" aria-hidden="true">05</span>
+            <span>记忆</span>
+          </button>
+          <button class="nav-item" type="button" data-view="runtime">
+            <span class="nav-glyph" aria-hidden="true">06</span>
+            <span>运行时</span>
+          </button>
+          <button class="nav-item" type="button" data-view="settings">
+            <span class="nav-glyph" aria-hidden="true">07</span>
+            <span>设置</span>
+          </button>
+        </nav>
+
+        <div class="nav-foot">
+          <span>LOCAL FIRST</span>
+          <small>本地回环 · 私密运行</small>
+        </div>
+      </aside>
+
+      <main class="workspace" id="workspace">
+        <section class="view is-active" id="view-overview" data-view-panel="overview">
+          <div class="hero-stage">
+            <div class="voice-cluster">
+              <button
+                class="voice-orb"
+                id="voiceButton"
+                type="button"
+                aria-label="按住与夜霜说话"
+                aria-describedby="voiceHint"
+              >
+                <span class="voice-orbit voice-orbit-one" aria-hidden="true"></span>
+                <span class="voice-orbit voice-orbit-two" aria-hidden="true"></span>
+                <span class="voice-orbit voice-orbit-three" aria-hidden="true"></span>
+                <span class="voice-core">
+                  <svg viewBox="0 0 32 32" aria-hidden="true">
+                    <path d="M16 21.5a5 5 0 0 0 5-5v-7a5 5 0 0 0-10 0v7a5 5 0 0 0 5 5Z"></path>
+                    <path d="M7.8 15.7v.8a8.2 8.2 0 0 0 16.4 0v-.8M16 24.7V29M11.8 29h8.4"></path>
+                  </svg>
+                  <span class="voice-status-mark" aria-hidden="true">
+                    <i></i>
+                    <i></i>
+                    <i></i>
+                    <i></i>
+                    <i></i>
+                  </span>
+                  <strong id="voiceState" aria-live="polite">按住说话</strong>
+                  <small id="voiceHint">也可以直接输入文字</small>
+                </span>
+              </button>
+            </div>
+            <div class="hero-reply" id="heroReplyPanel" aria-live="polite">
+              <span class="reply-spark" aria-hidden="true">✦</span>
+              <div>
+                <p id="heroReply">我在。</p>
+                <small id="heroReplyMeta">夜霜已经准备好听你说话</small>
+              </div>
+            </div>
+
+            <form class="hero-composer" id="heroChatForm">
+              <label class="sr-only" for="heroChatInput">想对夜霜说什么</label>
+              <input id="heroChatInput" type="text" maxlength="2000" autocomplete="off" placeholder="想对夜霜说什么…" />
+              <button id="heroSendButton" type="submit" aria-label="发送给夜霜">
+                <span aria-hidden="true">➤</span>
+              </button>
+            </form>
+
+            <div class="runtime-controls hero-runtime-controls">
+              <button class="button button-primary" id="daemonPrimaryButton" type="button" disabled>启动夜霜</button>
+              <button class="button button-secondary" id="daemonRestartButton" type="button" disabled>重新启动</button>
+            </div>
+
+            <div class="hero-telemetry" aria-label="夜霜当前状态">
+              <div>
+                <span>状态</span>
+                <strong id="presenceTitle">正在唤醒夜霜</strong>
+              </div>
+              <div>
+                <span>所在</span>
+                <strong id="currentRoom">中央地毯</strong>
+              </div>
+              <div>
+                <span>此刻</span>
+                <strong id="activity">小屋正在醒来。</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="overview-data-sinks" aria-hidden="true">
+            <p id="presenceSummary">读取 daemon、模型、日记和生活流状态。</p>
+            <section>
+              <span>守护进程</span>
+              <strong id="daemonStatus">读取中</strong>
+              <small id="daemonDetail">等待本地状态</small>
+            </section>
+            <section>
+              <span>生活观察</span>
+              <strong id="lifeObserver">读取中</strong>
+              <small id="deviceSyncStatus">等待设备同步</small>
+            </section>
+            <section>
+              <span>消息队列</span>
+              <strong id="messageBacklog">0</strong>
+            </section>
+            <div id="recentActivity"></div>
+            <span id="latestDiaryName">暂无记录</span>
+            <span id="latestTimelineName">暂无记录</span>
+            <span id="contextBrokerPreview">暂无记录</span>
+          </div>
+        </section>
+
+        <section class="view" id="view-chat" data-view-panel="chat" hidden>
+          <header class="view-header">
+            <div>
+              <p class="section-label">LOCAL CONVERSATION</p>
+              <h1>和夜霜说话</h1>
+              <p>直接调用当前模型路由。本地对话不会绕过记忆门控，也不会自动发往飞书。</p>
+            </div>
+            <div class="chat-header-tools">
+              <span class="route-chip" id="chatRoute">路由读取中</span>
+              <button class="button button-secondary" id="chatStopVoiceButton" type="button">停止声音</button>
+            </div>
+          </header>
+
+          <section class="chat-surface">
+            <div class="chat-history" id="chatHistory" aria-live="polite">
+              <div class="empty-state">
+                <strong>这里还很安静</strong>
+                <p>说一句话，夜霜会从当前人格和安全记忆上下文中回应你。</p>
+              </div>
+            </div>
+            <form class="chat-composer" id="chatForm">
+              <label class="sr-only" for="chatInput">给夜霜发送消息</label>
+              <textarea id="chatInput" rows="2" maxlength="2000" placeholder="父亲想对夜霜说什么？"></textarea>
+              <button class="button button-secondary chat-voice-button" id="chatVoiceButton" type="button" aria-label="按住语音输入">
+                <span aria-hidden="true">◉</span>
+                <span>语音</span>
+              </button>
+              <button class="button button-primary" id="chatSendButton" type="submit">发送</button>
+            </form>
+          </section>
+        </section>
+
+        <section class="view" id="view-diary" data-view-panel="diary" hidden>
+          <header class="view-header">
+            <div>
+              <p class="section-label">DAILY JOURNAL</p>
+              <h1>夜霜日记</h1>
+              <p>日记日期、生成状态与正文在同一个地方完成管理。</p>
+            </div>
+            <form class="inline-actions" id="diaryForm">
+              <label for="diaryDate">日期</label>
+              <input id="diaryDate" type="date" />
+              <button class="button button-primary" id="diaryGenerateButton" type="submit">生成日记</button>
+            </form>
+          </header>
+
+          <div class="document-layout">
+            <aside class="document-meta surface">
+              <p class="section-label">STATUS</p>
+              <h2 id="diaryTitle">尚未读取日记</h2>
+              <dl>
+                <div>
+                  <dt>定时时间</dt>
+                  <dd id="diarySchedule">23:30</dd>
+                </div>
+                <div>
+                  <dt>最新文件</dt>
+                  <dd id="diaryPath">暂无</dd>
+                </div>
+                <div>
+                  <dt>生成状态</dt>
+                  <dd id="diaryState">等待操作</dd>
+                </div>
+              </dl>
+              <p class="note">模型错误不会再作为日记正文保存；跨午夜补写也会使用目标日期。</p>
+            </aside>
+            <article class="document-reader" id="diaryContent" tabindex="0">
+              <div class="empty-state">
+                <strong>还没有可显示的日记</strong>
+                <p>选择日期后可以手动生成，也可以等待夜间自动任务。</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-life" data-view-panel="life" hidden>
+          <header class="view-header">
+            <div>
+              <p class="section-label">LIFE OBSERVER</p>
+              <h1>生活流</h1>
+              <p>只展示经过脱敏和权限检查的摘要，不读取原始池。</p>
+            </div>
+            <div class="view-header-actions">
+              <span class="inline-state" id="lifeRefreshState" role="status">只读摘要已同步</span>
+              <button class="button button-secondary" id="lifeRefreshButton" type="button">刷新摘要</button>
+            </div>
+          </header>
+          <div class="two-document-grid">
+            <article class="document-reader compact-document">
+              <header>
+                <p class="section-label">TIMELINE</p>
+                <h2 id="timelineTitle">今日时间线</h2>
+              </header>
+              <pre id="timelineContent">正在读取时间线。</pre>
+            </article>
+            <article class="document-reader compact-document">
+              <header>
+                <p class="section-label">DIGEST</p>
+                <h2 id="digestTitle">生活摘要</h2>
+              </header>
+              <pre id="digestContent">正在读取生活摘要。</pre>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-memory" data-view-panel="memory" hidden>
+          <header class="view-header">
+            <div>
+              <p class="section-label">MEMORY SYSTEM</p>
+              <h1>记忆与连续性</h1>
+              <p>长期记忆、任务与人格演化仍由原有门控管理。</p>
+            </div>
+            <div class="view-header-actions">
+              <span class="inline-state" id="memoryRefreshState" role="status">只读索引已同步</span>
+              <button class="button button-secondary" id="memoryRefreshButton" type="button">刷新索引</button>
+            </div>
+          </header>
+          <div class="memory-grid">
+            <article class="memory-block memory-context">
+              <span>上下文包</span>
+              <strong id="contextBroker">暂无上下文包</strong>
+              <p>为对话和日记提供近期、可追溯的安全线索。</p>
+            </article>
+            <article class="memory-block">
+              <span>最新任务</span>
+              <strong id="latestTask">暂无待办</strong>
+              <p>只接收父亲明确要求记录、跟进或提醒的事项。</p>
+            </article>
+            <article class="memory-block">
+              <span>人格候选</span>
+              <strong id="personaReview">暂无候选</strong>
+              <p>候选需要审阅，不会静默改写夜霜的核心人格。</p>
+            </article>
+            <article class="memory-block">
+              <span>最近归档</span>
+              <strong id="lastArchive">暂无归档</strong>
+              <p>日记、对话、任务和分析分别进入自己的区域。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-runtime" data-view-panel="runtime" hidden>
+          <header class="view-header">
+            <div>
+              <p class="section-label">RUNTIME</p>
+              <h1>运行时与模型</h1>
+              <p>查看核心服务、实际路由、备用模型和运行问题。</p>
+            </div>
+            <button class="button button-secondary" id="modelProbeButton" type="button">运行模型探针</button>
+          </header>
+
+          <div class="runtime-layout">
+            <section class="service-list surface" id="serviceList">
+              <article>
+                <span class="service-state" data-service="daemon"></span>
+                <div>
+                  <strong>守护进程</strong>
+                  <p id="serviceDaemon">读取中</p>
+                </div>
+              </article>
+              <article>
+                <span class="service-state" data-service="model"></span>
+                <div>
+                  <strong>模型网关</strong>
+                  <p id="serviceModel">读取中</p>
+                </div>
+              </article>
+              <article>
+                <span class="service-state" data-service="life"></span>
+                <div>
+                  <strong>生活观察</strong>
+                  <p id="serviceLife">读取中</p>
+                </div>
+              </article>
+              <article>
+                <span class="service-state" data-service="sync"></span>
+                <div>
+                  <strong>设备同步</strong>
+                  <p id="serviceSync">读取中</p>
+                </div>
+              </article>
+            </section>
+
+            <section class="surface runtime-details">
+              <p class="section-label">ROUTING</p>
+              <dl>
+                <div>
+                  <dt>配置路由</dt>
+                  <dd id="configuredRoute">unknown</dd>
+                </div>
+                <div>
+                  <dt>实际路由</dt>
+                  <dd id="actualRoute">unknown</dd>
+                </div>
+                <div>
+                  <dt>最近探针</dt>
+                  <dd id="lastProbe">暂无探针</dd>
+                </div>
+                <div>
+                  <dt>冷却提供方</dt>
+                  <dd id="providerCooldowns">无</dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+
+          <section class="surface issue-surface">
+            <header class="surface-header">
+              <div>
+                <p class="section-label">ISSUES</p>
+                <h2>运行问题</h2>
+              </div>
+            </header>
+            <div class="issue-list" id="runtimeIssues">
+              <p class="empty-line">暂无运行问题。</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" id="view-settings" data-view-panel="settings" hidden>
+          <header class="view-header">
+            <div>
+              <p class="section-label">SETTINGS</p>
+              <h1>夜霜设置</h1>
+              <p>管理模型与本地背景音乐，不展示令牌、密钥或私密路径。</p>
+            </div>
+          </header>
+
+          <form class="settings-form surface" id="modelSettingsForm">
+            <div class="field">
+              <label for="providerSelect">主要提供方</label>
+              <select id="providerSelect">
+                <option value="codex">Codex CLI</option>
+                <option value="ollama">Ollama 本地模型</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="gemini">Gemini CLI</option>
+              </select>
+              <small>模型网关仍会按照现有规则使用备用路由。</small>
+            </div>
+            <div class="field">
+              <label for="modelInput">模型名称</label>
+              <input id="modelInput" type="text" maxlength="120" autocomplete="off" />
+              <small>例如 gpt-5.5、yeshuang-native 或 deepseek-v4-flash。</small>
+            </div>
+            <div class="settings-actions">
+              <button class="button button-primary" id="modelSaveButton" type="submit">保存模型设置</button>
+              <span id="settingsState">尚未修改</span>
+            </div>
+          </form>
+
+          <section class="settings-form surface music-settings" aria-labelledby="voiceSettingsTitle">
+            <header class="music-settings-header">
+              <div>
+                <p class="section-label">VOICE</p>
+                <h2 id="voiceSettingsTitle">CosyVoice 3 · 清灵夜霜</h2>
+              </div>
+              <span id="cosyVoiceState">正在读取本地语音引擎</span>
+            </header>
+            <div class="voice-toggle-row">
+              <label class="voice-checkbox">
+                <input id="cosyVoiceEnabled" type="checkbox" checked />
+                <span>优先使用 CosyVoice 3</span>
+              </label>
+              <label class="voice-checkbox">
+                <input id="cosyVoiceAutoStart" type="checkbox" checked />
+                <span>随夜霜静默启动</span>
+              </label>
+            </div>
+            <div class="field">
+              <label for="cosyVoiceStyle">表达风格</label>
+              <select id="cosyVoiceStyle">
+                <option value="clear">清灵</option>
+                <option value="cool">清冷</option>
+                <option value="gentle">轻柔</option>
+                <option value="night">夜语</option>
+                <option value="custom">自定义</option>
+              </select>
+              <small id="cosyVoiceStyleHint">同一夜霜声线，只改变语气、节奏和情绪。</small>
+            </div>
+            <div class="field">
+              <label for="voiceInteractionMode">语音交互</label>
+              <select id="voiceInteractionMode">
+                <option value="hold">按住说话</option>
+                <option value="toggle">点击开始/结束</option>
+                <option value="continuous">免手持连续对话</option>
+              </select>
+              <small>连续模式会在夜霜说完后重新监听，可随时停止或切换静默模式。</small>
+            </div>
+            <div class="field">
+              <label for="cosyVoiceMode">声线模式</label>
+              <select id="cosyVoiceMode">
+                <option value="instruct2">清冷指令声线（推荐）</option>
+                <option value="zero_shot">参考声线精确复刻</option>
+              </select>
+              <small>指令模式更容易控制气质；精确复刻需要填写参考录音的原文。</small>
+            </div>
+            <div class="field">
+              <label for="cosyVoiceInstruction">说话风格</label>
+              <textarea id="cosyVoiceInstruction" maxlength="600" rows="4"></textarea>
+              <small>可以描述音色、语速、情绪和气息。系统会自动补全 CosyVoice 指令结束标记。</small>
+            </div>
+            <div class="field">
+              <label for="cosyVoicePromptText">参考录音原文</label>
+              <input
+                id="cosyVoicePromptText"
+                type="text"
+                maxlength="500"
+                autocomplete="off"
+                placeholder="逐字填写参考录音里说出的内容"
+              />
+              <small>仅精确复刻模式必填；内容需要与 WAV 录音一致。</small>
+            </div>
+            <div class="music-import-row">
+              <label class="button button-secondary music-import-button" for="cosyVoiceReferenceInput">
+                导入参考声线
+              </label>
+              <input id="cosyVoiceReferenceInput" class="sr-only" type="file" accept=".wav,audio/wav" />
+              <small id="cosyVoiceReferenceState">需要 2–60 秒 WAV。仅使用本人或明确授权的人声，文件只保存在本机。</small>
+            </div>
+            <div class="settings-actions voice-settings-actions">
+              <button class="button button-primary" id="cosyVoiceSaveButton" type="button">保存声线设置</button>
+              <button class="button button-secondary" id="cosyVoiceToggleButton" type="button">启动语音引擎</button>
+            </div>
+          </section>
+
+          <section class="settings-form surface music-settings" aria-labelledby="companionSettingsTitle">
+            <header class="music-settings-header">
+              <div>
+                <p class="section-label">COMPANION</p>
+                <h2 id="companionSettingsTitle">问候与主动话题</h2>
+              </div>
+              <span id="companionSettingsState">正在读取陪伴设置</span>
+            </header>
+            <div class="voice-toggle-row companion-toggle-grid">
+              <label class="voice-checkbox">
+                <input id="companionEnabled" type="checkbox" checked />
+                <span>启用桌面陪伴</span>
+              </label>
+              <label class="voice-checkbox">
+                <input id="startupGreetingEnabled" type="checkbox" checked />
+                <span>新启动时先问候</span>
+              </label>
+              <label class="voice-checkbox">
+                <input id="companionAutoSpeak" type="checkbox" checked />
+                <span>自动朗读问候与话题</span>
+              </label>
+              <label class="voice-checkbox">
+                <input id="proactiveEnabled" type="checkbox" checked />
+                <span>空闲时主动开启话题</span>
+              </label>
+            </div>
+            <div class="companion-settings-grid">
+              <div class="field">
+                <label for="proactiveIdleMin">最短空闲（分钟）</label>
+                <input id="proactiveIdleMin" type="number" min="1" max="120" step="1" value="8" />
+              </div>
+              <div class="field">
+                <label for="proactiveIdleMax">最长空闲（分钟）</label>
+                <input id="proactiveIdleMax" type="number" min="1" max="120" step="1" value="12" />
+              </div>
+              <div class="field">
+                <label for="proactiveCooldown">最短间隔（分钟）</label>
+                <input id="proactiveCooldown" type="number" min="5" max="1440" step="5" value="30" />
+              </div>
+              <div class="field">
+                <label for="proactiveDailyLimit">每日上限</label>
+                <input id="proactiveDailyLimit" type="number" min="0" max="12" step="1" value="3" />
+              </div>
+              <div class="field">
+                <label for="companionQuietStart">静默开始</label>
+                <input id="companionQuietStart" type="time" value="22:30" />
+              </div>
+              <div class="field">
+                <label for="companionQuietEnd">静默结束</label>
+                <input id="companionQuietEnd" type="time" value="08:00" />
+              </div>
+            </div>
+            <div class="settings-actions">
+              <button class="button button-primary" id="companionSettingsSaveButton" type="button">保存陪伴设置</button>
+              <span id="companionUsageState">今天尚未主动开启话题</span>
+            </div>
+          </section>
+
+          <section class="settings-form surface music-settings" aria-labelledby="musicSettingsTitle">
+            <header class="music-settings-header">
+              <div>
+                <p class="section-label">SOUNDTRACK</p>
+                <h2 id="musicSettingsTitle">背景音乐</h2>
+              </div>
+              <span id="musicState">本地音乐库</span>
+            </header>
+            <div class="field">
+              <label for="musicSelect">当前曲目</label>
+              <select id="musicSelect">
+                <option value="yeshuang-ambient">夜霜 · 待机环境音</option>
+              </select>
+              <small>选择后立即切换并记住；AI 说话时音乐会自动降低。</small>
+            </div>
+            <div class="music-import-row">
+              <label class="button button-secondary music-import-button" for="musicFileInput">
+                导入本地音乐
+              </label>
+              <input
+                id="musicFileInput"
+                class="sr-only"
+                type="file"
+                accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.mp4,.webm,audio/*"
+              />
+              <small>支持 MP3、WAV、M4A、AAC、FLAC、OGG、MP4、WEBM，单个不超过 100 MB。</small>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <aside class="presence-panel" aria-label="夜霜状态">
+        <span class="rail-number">01</span>
+        <span class="rail-line rail-line-top" aria-hidden="true"></span>
+        <span class="rail-star" aria-hidden="true">✦</span>
+
+        <div class="rail-status">
+          <span class="connection-state" id="connectionState">
+            <i id="presenceStateDot" aria-hidden="true"></i>
+            <span id="presenceStateText">正在连接</span>
+          </span>
+          <span class="rail-divider" aria-hidden="true"></span>
+          <div class="rail-model">
+            <span>MODEL</span>
+            <strong id="llmRoute">读取中</strong>
+            <small id="fallbackStatus">等待路由信息</small>
+          </div>
+          <span class="rail-divider" aria-hidden="true"></span>
+          <time class="server-clock" id="serverTime">--:--</time>
+        </div>
+
+        <button class="rail-cottage-toggle" id="cottageToggle" type="button" aria-expanded="false" aria-controls="cottageDrawer">
+          <span aria-hidden="true">✧</span>
+          <span>小屋</span>
+        </button>
+
+        <section class="cottage-drawer" id="cottageDrawer" hidden>
+          <header>
+            <div>
+              <p class="section-label">COTTAGE</p>
+              <strong>夜霜的小屋</strong>
+            </div>
+            <span id="movementTarget">自由巡屋</span>
+          </header>
+          <div class="bond-panel">
+            <div>
+              <span>心情</span>
+              <strong id="moodValue">--</strong>
+            </div>
+            <div>
+              <span>亲密</span>
+              <strong id="bondValue">--</strong>
+            </div>
+          </div>
+          <div class="cottage-actions">
+            <button type="button" data-cottage-action="care" data-kind="pat">摸摸她</button>
+            <button type="button" data-cottage-action="care" data-kind="sit">陪她坐一会</button>
+            <button type="button" data-cottage-action="care" data-kind="rest">让她休息</button>
+            <button type="button" data-cottage-action="send_letter_request">请她寄信</button>
+          </div>
+          <p id="cottageHint">动作会进入本地队列，由 daemon 审核处理。</p>
+        </section>
+
+        <span class="rail-line rail-line-bottom" aria-hidden="true"></span>
+        <span class="rail-page">PAGE<br />01</span>
+      </aside>
+    </div>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
