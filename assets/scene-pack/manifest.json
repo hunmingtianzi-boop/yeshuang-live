@@ -46,22 +46,22 @@
       "source_note": "首尾一致能循环_夜霜安静地用手托着脸_保持原有姿势_胸口随着_2026-07-29T13-37-25.mp4"
     },
     {
-      "id": "idle-blink-02",
+      "id": "idle-drowsy-01",
       "state": "idle",
-      "action": "blink",
-      "src": "assets/scene-pack/clips/idle/idle-blink-02.mp4",
+      "action": "drowsy-eye-close",
+      "src": "assets/scene-pack/clips/idle/idle-drowsy-01.mp4",
       "enabled": true,
       "playback": "once",
       "weight": 1,
-      "duration_seconds": 4.33,
+      "duration_seconds": 8.0,
       "fps": 24,
       "width": 1536,
       "height": 1024,
       "action_window_seconds": [
         1.25,
-        1.57
+        5.25
       ],
-      "sha256": "eb1b93b88cb8e6b797ee7d07a5aa6e69396c1e83c0ea71ce03cc0e0728423cf8",
+      "sha256": "b862b08d562c479faa6c2c149d24906bad644954e72d0911af5bfe3b8506208b",
       "source_note": "一位名叫夜霜的银蓝色长发少女_安静地用手托着脸颊_保持原有姿_2026-07-29T14-02-52.mp4"
     }
   ]
