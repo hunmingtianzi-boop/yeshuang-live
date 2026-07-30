@@ -10,9 +10,12 @@
 
 - 正式封面 UI：夜蓝星光、左侧品牌导航、人物主画面、语音圆和右侧状态栏。
 - 统一基准图：`1536 × 1024`，所有动作视频必须以它为首尾视觉基准。
-- 一段正常速度的待机眨眼 `idle-blink-01`，以及一段保留原始慢节奏的慵懒合眼 `idle-drowsy-01`。
-- 清单驱动的动作播放器：按状态选片、权重随机、避免连续重复、动作之间回到基准图。
+- 14 条已验收动作覆盖普通眨眼、保留原始慢节奏的慵懒合眼 `idle-drowsy-01`、轻呼吸、视线游移、夜风轻拂、倾听、思考、轻声说话和浅笑，并为主要回应状态提供稳定变体。
+- 清单驱动的动作播放器：按状态选片、动作共享冷却、低频权重、随机静止、避免连续重复，动作之间回到基准图。
+- 存在感回应：指针进入人物脸部附近并短暂停留，或离开窗口较久后回来时，夜霜会在不抢占对话状态的前提下低频看向你。
+- 夜风环境联动：`breeze` 动作期间星尘产生克制的横向漂移；“减少动态效果”会保持人物与环境静止。
 - 素材导入与校验工具：自动统一分辨率、帧率、编码并更新 `manifest.json`。
+- WorkBuddy 生成素材经过异常帧筛除、首尾一致性检查和无音轨规范化后再登记。
 - 完整前端与动作要求：[docs/FRONTEND_UI_REQUIREMENTS.md](docs/FRONTEND_UI_REQUIREMENTS.md)。
 - 协作提交流程：[CONTRIBUTING.md](CONTRIBUTING.md)。
 
@@ -44,7 +47,9 @@ python tools/yeshuang_scene_pack.py add `
   --source "assets/scene-pack/incoming/yeshuang-listening-01.mp4" `
   --id "listening-focus-01" `
   --state "listening" `
-  --action "focus"
+  --action "focus" `
+  --action-start 0.4 `
+  --action-end 3.3
 ```
 
 4. 完整校验：
@@ -52,6 +57,14 @@ python tools/yeshuang_scene_pack.py add `
 ```powershell
 python tools/yeshuang_scene_pack.py validate
 ```
+
+播放器改动后再执行无界面浏览器门禁：
+
+```powershell
+node tools/scene_runtime_smoke.mjs
+```
+
+它会验证状态切换期间最多只有一个可见视频、旧播放回调不能覆盖新状态、首选动作失效后调度能恢复、夜风环境标记的生命周期、人物区域进入与冷却，以及“减少动态效果”下完全静止。测试会自动寻找常见位置的 Chrome；自定义安装位置可用 `YESHUANG_CHROME_PATH` 指定。
 
 5. 启动预览，分别检查 `820×600`、`1040×680`、`1460×900` 和 `2560×1440`。
 

@@ -9,6 +9,7 @@
     refreshTimer: 0,
     sceneTimer: 0,
     sceneIndex: 0,
+    sceneEmotionEpoch: 0,
     sceneController: null,
     quiet: false,
     companion: {
@@ -524,6 +525,7 @@
       setHeroReply(result.reply, `${route.provider || "unknown"} / ${route.model || "unknown"}`);
       if (state.voice.autoSpeak) await speakReply(result.reply);
       else setVoiceMode("idle", "按住说话", "也可以直接输入文字");
+      playReplyEmotion(result.reply);
       completed = true;
     } catch (error) {
       appendChatMessage("yeshuang", `这次没有连上模型：${error.message}`, new Date().toISOString());
@@ -669,6 +671,7 @@
   }
 
   function setVoiceMode(mode, label, hint) {
+    state.sceneEmotionEpoch += 1;
     document.documentElement.dataset.voice = mode;
     state.sceneController?.setState?.(
       ["idle", "listening", "thinking", "speaking"].includes(mode) ? mode : "idle",
@@ -695,6 +698,19 @@
   function setVoiceIdle() {
     const [label, hint] = voiceIdleCopy();
     setVoiceMode("idle", label, hint);
+  }
+
+  function playReplyEmotion(reply) {
+    const text = String(reply || "");
+    const warmEmotion = /开心|高兴|喜欢|谢谢|真好|太好|愿意|晚安|早安|辛苦|抱抱|可爱|温柔|微笑|笑了|☺|😊|✨/u;
+    if (!warmEmotion.test(text)) return;
+    const emotionEpoch = state.sceneEmotionEpoch;
+    window.setTimeout(() => {
+      if (emotionEpoch !== state.sceneEmotionEpoch) return;
+      const voiceMode = document.documentElement.dataset.voice || "idle";
+      if (voiceMode !== "idle" || state.voice.listening || state.voice.nativeListening) return;
+      state.sceneController?.playEmotion?.();
+    }, 260);
   }
 
   function clampAudioLevel(value) {
@@ -1264,6 +1280,7 @@
     if (candidate.should_speak && state.voice.autoSpeak && !state.quiet) {
       await speakReply(result.entry.reply);
     }
+    playReplyEmotion(result.entry.reply);
     return true;
   }
 
@@ -1893,6 +1910,23 @@
       x: Number.isFinite(Number(manifestAnchor.x)) ? Number(manifestAnchor.x) : fallbackAnchor.x,
       y: Number.isFinite(Number(manifestAnchor.y)) ? Number(manifestAnchor.y) : fallbackAnchor.y,
     };
+    const presenceRoiConfig = (
+      layoutConfig.presence_roi && typeof layoutConfig.presence_roi === "object"
+        ? layoutConfig.presence_roi
+        : {}
+    );
+    const normalizeRoi = (value, fallback) => {
+      if (!Array.isArray(value) || value.length !== 4) return fallback;
+      const bounds = value.map(Number);
+      if (
+        bounds.some((item) => !Number.isFinite(item) || item < 0 || item > 1)
+        || bounds[0] >= bounds[2]
+        || bounds[1] >= bounds[3]
+      ) return fallback;
+      return bounds;
+    };
+    const presenceEnterRoi = normalizeRoi(presenceRoiConfig.enter, [0.55, 0.06, 0.9, 0.6]);
+    const presenceExitRoi = normalizeRoi(presenceRoiConfig.exit, [0.48, 0.01, 0.96, 0.69]);
     const baseSrc = String(baseConfig.src || "assets/scene-pack/base/yeshuang-base.png");
     if (sceneBase && sceneBase.getAttribute("src") !== baseSrc) sceneBase.src = baseSrc;
 
@@ -1906,8 +1940,24 @@
       video.id = `sceneClip-${String(clip.id || index).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
       video.dataset.sceneId = String(clip.id || `clip-${index}`);
       video.dataset.sceneRole = String(clip.state || "idle");
+      video.dataset.sceneAction = String(clip.action || clip.id || `clip-${index}`);
       video.dataset.scenePlayback = clip.playback === "loop" ? "loop" : "once";
-      video.dataset.sceneWeight = String(Math.max(1, Number(clip.weight || 1)));
+      const weight = Number(clip.weight ?? 1);
+      video.dataset.sceneWeight = String(Number.isFinite(weight) ? Math.max(0.01, weight) : 1);
+      const cooldownSeconds = Number(clip.cooldown_seconds ?? 0);
+      video.dataset.sceneCooldownMs = String(
+        Number.isFinite(cooldownSeconds) ? Math.max(0, cooldownSeconds * 1000) : 0,
+      );
+      if (
+        Array.isArray(clip.gap_after_ms)
+        && clip.gap_after_ms.length === 2
+        && clip.gap_after_ms.every((value) => Number.isFinite(Number(value)))
+      ) {
+        video.dataset.sceneGapMinMs = String(Math.max(0, Number(clip.gap_after_ms[0])));
+        video.dataset.sceneGapMaxMs = String(
+          Math.max(Number(video.dataset.sceneGapMinMs), Number(clip.gap_after_ms[1])),
+        );
+      }
       video.src = String(clip.src);
       video.poster = baseSrc;
       video.preload = "auto";
@@ -1964,14 +2014,58 @@
     });
     const idleGap = Array.isArray(playbackConfig.idle_gap_ms)
       ? playbackConfig.idle_gap_ms.map(Number)
-      : [2600, 5200];
+      : [3500, 9000];
+    const modeGapConfig = (
+      playbackConfig.mode_gap_ms && typeof playbackConfig.mode_gap_ms === "object"
+        ? playbackConfig.mode_gap_ms
+        : {}
+    );
+    const modeGapDefaults = {
+      listening: [1800, 4200],
+      thinking: [1400, 3600],
+      speaking: [80, 220],
+    };
+    const idleSkipChance = Math.min(
+      0.8,
+      Math.max(0, Number(playbackConfig.idle_skip_chance ?? 0.3)),
+    );
+    const idleRateConfig = Array.isArray(playbackConfig.idle_playback_rate)
+      ? playbackConfig.idle_playback_rate.map(Number)
+      : [0.96, 1.04];
+    const idlePlaybackRate = [
+      Math.min(1.15, Math.max(0.85, Number(idleRateConfig[0]) || 0.96)),
+      Math.min(1.15, Math.max(0.85, Number(idleRateConfig[1]) || 1.04)),
+    ];
+    idlePlaybackRate[1] = Math.max(idlePlaybackRate[0], idlePlaybackRate[1]);
+    const presenceCooldown = Array.isArray(playbackConfig.presence_cooldown_ms)
+      ? playbackConfig.presence_cooldown_ms.map(Number)
+      : [22000, 42000];
+    const presenceInitialDelay = Array.isArray(playbackConfig.presence_initial_delay_ms)
+      ? playbackConfig.presence_initial_delay_ms.map(Number)
+      : [5000, 9000];
+    const presenceActions = Array.isArray(playbackConfig.presence_actions)
+      ? playbackConfig.presence_actions.map(String).filter(Boolean)
+      : ["glance"];
+    const presenceAwayThreshold = Math.max(
+      3000,
+      Number(playbackConfig.presence_away_threshold_ms || 8000),
+    );
+    const motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    let reducedMotion = Boolean(motionQuery?.matches);
     const safeStart = Math.max(0, Number(playbackConfig.safe_start_seconds || 0));
     const transitionMs = Math.max(80, Number(playbackConfig.transition_ms || 420));
+    const modeTransitionMs = Math.max(80, Number(playbackConfig.mode_transition_ms || 220));
     const initialIdleDelay = Math.max(300, Number(playbackConfig.initial_idle_delay_ms || 900));
     const lastVideoByMode = new Map();
+    const lastPlayedAtByAction = new Map();
+    const recentActions = [];
     let activeVideo = null;
     let currentMode = "idle";
+    let modeEpoch = 0;
     let actionTimer = 0;
+    let presenceReadyAt = 0;
+    let presenceRequestPending = "";
+    let presenceTimer = 0;
     let paused = false;
 
     const clearActionTimer = () => {
@@ -1983,6 +2077,11 @@
       const upper = Math.max(lower, Number(bounds?.[1]));
       if (!Number.isFinite(lower) || !Number.isFinite(upper)) return fallback;
       return lower + Math.random() * (upper - lower);
+    };
+    presenceReadyAt = Date.now() + randomBetween(presenceInitialDelay, 7000);
+    const modeGap = (mode) => {
+      const configured = modeGapConfig[mode];
+      return Array.isArray(configured) ? configured.map(Number) : modeGapDefaults[mode];
     };
     const rewind = (video) => {
       if (!video) return;
@@ -1996,51 +2095,130 @@
       if (video.readyState >= 1) apply();
       else video.addEventListener("loadedmetadata", apply, { once: true });
     };
-    const selectVideo = (mode) => {
-      const candidates = (groups[mode] || []).filter((video) => video.dataset.sceneFailed !== "true");
-      if (!candidates.length) return null;
+    const cooldownRemaining = (video, now = Date.now()) => {
+      const action = video.dataset.sceneAction || video.dataset.sceneId;
+      const lastPlayedAt = Number(lastPlayedAtByAction.get(action) || 0);
+      const cooldownMs = Math.max(0, Number(video.dataset.sceneCooldownMs || 0));
+      return Math.max(0, lastPlayedAt + cooldownMs - now);
+    };
+    const selectVideo = (mode, preferredAction = "") => {
+      let candidates = (groups[mode] || []).filter((video) => video.dataset.sceneFailed !== "true");
+      if (preferredAction) {
+        candidates = candidates.filter(
+          (video) => (video.dataset.sceneAction || video.dataset.sceneId) === preferredAction,
+        );
+      }
+      if (!candidates.length) return { video: null, retryDelay: null };
+      const now = Date.now();
+      let pool = candidates.filter((video) => cooldownRemaining(video, now) <= 0);
+      if (!pool.length) {
+        const retryDelay = Math.min(...candidates.map((video) => cooldownRemaining(video, now)));
+        return { video: null, retryDelay };
+      }
+      const freshActions = pool.filter(
+        (video) => !recentActions.includes(video.dataset.sceneAction || video.dataset.sceneId),
+      );
+      if (freshActions.length) pool = freshActions;
       const previous = lastVideoByMode.get(mode);
-      const pool = candidates.length > 1
-        ? candidates.filter((video) => video !== previous)
-        : candidates;
+      const withoutPrevious = pool.length > 1 ? pool.filter((video) => video !== previous) : pool;
+      if (withoutPrevious.length) pool = withoutPrevious;
       const totalWeight = pool.reduce(
-        (sum, video) => sum + Math.max(1, Number(video.dataset.sceneWeight || 1)),
+        (sum, video) => sum + Math.max(0.01, Number(video.dataset.sceneWeight || 1)),
         0,
       );
       let cursor = Math.random() * totalWeight;
       for (const video of pool) {
-        cursor -= Math.max(1, Number(video.dataset.sceneWeight || 1));
-        if (cursor <= 0) return video;
+        cursor -= Math.max(0.01, Number(video.dataset.sceneWeight || 1));
+        if (cursor <= 0) return { video, retryDelay: 0 };
       }
-      return pool[pool.length - 1];
+      return { video: pool[pool.length - 1], retryDelay: 0 };
     };
-    const scheduleCurrentMode = (delayMs) => {
+    const setSceneLifecycle = (video = null) => {
+      document.documentElement.dataset.sceneMode = currentMode;
+      const action = video?.dataset.sceneAction || video?.dataset.sceneId || "";
+      if (action) document.documentElement.dataset.sceneAction = action;
+      else delete document.documentElement.dataset.sceneAction;
+    };
+    const scheduleCurrentMode = (delayMs, preferredAction = "") => {
       clearActionTimer();
-      if (paused || state.quiet || document.hidden) return;
+      if (paused || reducedMotion || state.quiet || document.hidden) return;
+      const scheduledMode = currentMode;
+      const scheduledEpoch = modeEpoch;
+      const scheduledAction = preferredAction;
       actionTimer = window.setTimeout(() => {
         actionTimer = 0;
-        const next = selectVideo(currentMode);
-        if (!next) return;
+        if (
+          paused
+          || reducedMotion
+          || state.quiet
+          || document.hidden
+          || scheduledMode !== currentMode
+          || scheduledEpoch !== modeEpoch
+        ) return;
+        if (currentMode === "idle" && !scheduledAction && Math.random() < idleSkipChance) {
+          scheduleCurrentMode(randomBetween(idleGap, 5600));
+          return;
+        }
+        const selection = selectVideo(currentMode, scheduledAction);
+        const next = selection.video;
+        if (!next) {
+          if (scheduledAction) {
+            if (presenceRequestPending === scheduledAction) presenceRequestPending = "";
+            scheduleCurrentMode(800);
+            return;
+          }
+          if (Number.isFinite(selection.retryDelay)) {
+            scheduleCurrentMode(Math.max(800, Math.min(selection.retryDelay, 30000)));
+          }
+          return;
+        }
+        const activeTransitionMs = currentMode === "idle" ? transitionMs : modeTransitionMs;
         const previous = activeVideo;
         if (previous && previous !== next) {
-          previous.style.transitionDuration = `${transitionMs}ms`;
+          previous.style.transitionDuration = `${activeTransitionMs}ms`;
           previous.classList.remove("is-active");
           previous.pause();
         }
         rewind(next);
-        next.style.transitionDuration = `${transitionMs}ms`;
+        next.style.transitionDuration = `${activeTransitionMs}ms`;
         next.classList.remove("is-revealing", "is-reveal-active");
         next.classList.add("is-active");
         activeVideo = next;
         lastVideoByMode.set(currentMode, next);
+        const action = next.dataset.sceneAction || next.dataset.sceneId;
+        const startedAt = Date.now();
+        if (presenceRequestPending === action && scheduledAction === action) {
+          presenceRequestPending = "";
+          presenceReadyAt = startedAt + randomBetween(presenceCooldown, 32000);
+        }
+        lastPlayedAtByAction.set(action, startedAt);
+        const recentIndex = recentActions.indexOf(action);
+        if (recentIndex >= 0) recentActions.splice(recentIndex, 1);
+        recentActions.push(action);
+        while (recentActions.length > 2) recentActions.shift();
         state.sceneIndex = videos.indexOf(next);
+        next.playbackRate = currentMode === "idle"
+          ? randomBetween(idlePlaybackRate, 1)
+          : 1;
+        setSceneLifecycle(next);
         updateSceneAnchor();
+        const startedMode = currentMode;
+        const startedEpoch = modeEpoch;
         const playPromise = next.play();
         playPromise?.catch(() => {
+          if (
+            activeVideo !== next
+            || currentMode !== startedMode
+            || modeEpoch !== startedEpoch
+          ) return;
           next.dataset.sceneFailed = "true";
           next.classList.remove("is-active");
           activeVideo = null;
           state.sceneIndex = -1;
+          if (lastPlayedAtByAction.get(action) === startedAt) lastPlayedAtByAction.delete(action);
+          setSceneLifecycle();
+          updateSceneAnchor();
+          scheduleCurrentMode(800);
         });
       }, Math.max(0, delayMs));
     };
@@ -2049,17 +2227,26 @@
       activeVideo = null;
       state.sceneIndex = -1;
       if (finished) {
-        finished.style.transitionDuration = `${transitionMs}ms`;
+        finished.style.transitionDuration = `${
+          currentMode === "idle" ? transitionMs : modeTransitionMs
+        }ms`;
         finished.classList.remove("is-active", "is-revealing", "is-reveal-active");
         finished.pause();
         rewind(finished);
       }
+      setSceneLifecycle();
       updateSceneAnchor();
       if (!schedule) return;
       if (currentMode === "idle") {
-        scheduleCurrentMode(randomBetween(idleGap, 3900));
-      } else if (currentMode === "speaking") {
-        scheduleCurrentMode(20);
+        const customGap = finished?.dataset.sceneGapMinMs === undefined
+          ? idleGap
+          : [
+              Number(finished.dataset.sceneGapMinMs),
+              Number(finished.dataset.sceneGapMaxMs),
+            ];
+        scheduleCurrentMode(randomBetween(customGap, 5600));
+      } else if (["listening", "thinking", "speaking"].includes(currentMode)) {
+        scheduleCurrentMode(randomBetween(modeGap(currentMode), 1200));
       }
     };
     const setMode = (mode) => {
@@ -2067,11 +2254,66 @@
         ? mode
         : "idle";
       if (requestedMode === currentMode && (activeVideo || actionTimer)) return;
+      modeEpoch += 1;
       currentMode = requestedMode;
+      if (currentMode !== "idle") presenceRequestPending = "";
       clearActionTimer();
       settleOnBase({ schedule: false });
+      setSceneLifecycle();
       if (!groups[currentMode]?.length) return;
       scheduleCurrentMode(currentMode === "idle" ? 350 : 20);
+    };
+    const requestIdleAction = (action) => {
+      const requestedAction = String(action || "");
+      if (
+        !requestedAction
+        || currentMode !== "idle"
+        || paused
+        || reducedMotion
+        || state.quiet
+        || document.hidden
+        || document.documentElement.dataset.view !== "overview"
+      ) return false;
+      const canPlay = (groups.idle || []).some((video) => (
+        video.dataset.sceneFailed !== "true"
+        && (video.dataset.sceneAction || video.dataset.sceneId) === requestedAction
+        && cooldownRemaining(video) <= 0
+      ));
+      if (!canPlay) return false;
+      if (activeVideo) {
+        clearActionTimer();
+        settleOnBase({ schedule: false });
+      }
+      scheduleCurrentMode(randomBetween([280, 720], 480), requestedAction);
+      return true;
+    };
+    const reactToPresence = () => {
+      const now = Date.now();
+      if (reducedMotion || now < presenceReadyAt) return false;
+      const availableActions = presenceActions.filter((action) => (
+        (groups.idle || []).some((video) => (
+          video.dataset.sceneFailed !== "true"
+          && (video.dataset.sceneAction || video.dataset.sceneId) === action
+          && cooldownRemaining(video, now) <= 0
+        ))
+      ));
+      if (!availableActions.length) return false;
+      const action = availableActions[Math.floor(Math.random() * availableActions.length)];
+      if (!requestIdleAction(action)) return false;
+      presenceRequestPending = action;
+      return true;
+    };
+    const clearPresenceTimer = () => {
+      window.clearTimeout(presenceTimer);
+      presenceTimer = 0;
+    };
+    const queuePresenceReaction = (delayBounds = [350, 700]) => {
+      clearPresenceTimer();
+      if (paused || reducedMotion || state.quiet || document.hidden) return;
+      presenceTimer = window.setTimeout(() => {
+        presenceTimer = 0;
+        reactToPresence();
+      }, randomBetween(delayBounds, 520));
     };
 
     videos.forEach((video) => {
@@ -2080,6 +2322,10 @@
         if (currentMode === "speaking" && video.dataset.scenePlayback === "loop") {
           rewind(video);
           video.play().catch(() => {});
+          return;
+        }
+        if (currentMode === "emotion") {
+          setMode("idle");
           return;
         }
         settleOnBase();
@@ -2095,26 +2341,120 @@
     observeSceneAnchor();
     updateSceneAnchor();
     state.sceneIndex = -1;
+    setSceneLifecycle();
     state.sceneController = {
       setState: setMode,
       setSpeaking(speaking) {
         setMode(speaking ? "speaking" : "idle");
       },
+      playEmotion() {
+        if (currentMode !== "idle" || paused || reducedMotion || state.quiet || document.hidden) return;
+        setMode("emotion");
+      },
+      playAction(action) {
+        return requestIdleAction(action);
+      },
+      reactToPresence,
       pause() {
         paused = true;
+        presenceRequestPending = "";
         clearActionTimer();
-        activeVideo?.pause();
+        clearPresenceTimer();
+        settleOnBase({ schedule: false });
       },
       resume() {
         paused = false;
-        if (activeVideo) activeVideo.play().catch(() => {});
-        else if (groups[currentMode]?.length) scheduleCurrentMode(180);
+        if (reducedMotion) {
+          settleOnBase({ schedule: false });
+          return;
+        }
+        if (groups[currentMode]?.length) scheduleCurrentMode(180);
       },
       updateAnchor: updateSceneAnchor,
     };
+    const handleMotionPreference = (event) => {
+      reducedMotion = Boolean(event.matches);
+      state.audioReactive.reducedMotion = reducedMotion;
+      presenceRequestPending = "";
+      clearActionTimer();
+      clearPresenceTimer();
+      settleOnBase({ schedule: false });
+      if (!reducedMotion && !paused && !state.quiet && !document.hidden && groups[currentMode]?.length) {
+        scheduleCurrentMode(600);
+      }
+    };
+    motionQuery?.addEventListener?.("change", handleMotionPreference);
+    const presenceStage = qs(".hero-stage");
+    const pointerPositionInScene = (event) => {
+      if (!layer) return null;
+      const media = activeVideo || sceneBase;
+      const mediaWidth = Number(media?.videoWidth || media?.naturalWidth || baseConfig.width || 1536);
+      const mediaHeight = Number(media?.videoHeight || media?.naturalHeight || baseConfig.height || 1024);
+      const rect = layer.getBoundingClientRect();
+      if (!mediaWidth || !mediaHeight || !rect.width || !rect.height) return null;
+      const scale = Math.min(rect.width / mediaWidth, rect.height / mediaHeight);
+      const renderedWidth = mediaWidth * scale;
+      const renderedHeight = mediaHeight * scale;
+      const offsetX = rect.width - renderedWidth;
+      const offsetY = (rect.height - renderedHeight) / 2;
+      return {
+        x: (event.clientX - rect.left - offsetX) / renderedWidth,
+        y: (event.clientY - rect.top - offsetY) / renderedHeight,
+      };
+    };
+    const insideRoi = (point, bounds) => Boolean(
+      point
+      && point.x >= bounds[0]
+      && point.y >= bounds[1]
+      && point.x <= bounds[2]
+      && point.y <= bounds[3]
+    );
+    const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches || false;
+    let pointerNearPortrait = false;
+    let lastPointerProbeAt = 0;
+    presenceStage?.addEventListener("pointermove", (event) => {
+      if (coarsePointer || (event.pointerType && !["mouse", "pen"].includes(event.pointerType))) return;
+      const now = Date.now();
+      if (now - lastPointerProbeAt < 80) return;
+      lastPointerProbeAt = now;
+      const point = pointerPositionInScene(event);
+      if (pointerNearPortrait) {
+        if (!insideRoi(point, presenceExitRoi)) {
+          pointerNearPortrait = false;
+          clearPresenceTimer();
+        }
+        return;
+      }
+      if (!insideRoi(point, presenceEnterRoi)) return;
+      pointerNearPortrait = true;
+      const readinessDelay = Math.max(0, presenceReadyAt - now);
+      queuePresenceReaction([readinessDelay + 320, readinessDelay + 520]);
+    }, { passive: true });
+    presenceStage?.addEventListener("pointerleave", () => {
+      pointerNearPortrait = false;
+      clearPresenceTimer();
+    }, { passive: true });
+    let awayStartedAt = 0;
+    const markPresenceAway = () => {
+      if (!awayStartedAt) awayStartedAt = Date.now();
+      clearPresenceTimer();
+    };
+    const maybeReactOnReturn = () => {
+      if (document.hidden || (document.hasFocus && !document.hasFocus())) return;
+      const awayDuration = awayStartedAt ? Date.now() - awayStartedAt : 0;
+      awayStartedAt = 0;
+      if (awayDuration >= presenceAwayThreshold) queuePresenceReaction([420, 980]);
+    };
+    window.addEventListener("blur", markPresenceAway);
+    window.addEventListener("focus", maybeReactOnReturn);
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) state.sceneController?.pause();
-      else if (!state.quiet) state.sceneController?.resume();
+      if (document.hidden) {
+        markPresenceAway();
+        state.sceneController?.pause();
+        return;
+      }
+      if (!state.quiet) state.sceneController?.resume();
+      maybeReactOnReturn();
     });
     if (groups.idle?.length) scheduleCurrentMode(initialIdleDelay);
   }
@@ -2178,8 +2518,12 @@
     const canvas = qs("#starField");
     const context = canvas?.getContext?.("2d");
     if (!canvas || !context) return;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reduceMotion = motionQuery.matches;
     let stars = [];
+    let breezeLevel = 0;
+    let lastFrameTime = 0;
+    let staticFrameDrawn = false;
     const resize = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const width = Math.max(1, canvas.clientWidth);
@@ -2187,6 +2531,7 @@
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      staticFrameDrawn = false;
       stars = Array.from({ length: Math.max(28, Math.round(width / 27)) }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -2199,16 +2544,52 @@
     const draw = (time) => {
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
+      const deltaScale = lastFrameTime
+        ? Math.min(2, Math.max(0.25, (time - lastFrameTime) / (1000 / 60)))
+        : 1;
+      lastFrameTime = time;
+      const animateScene = !state.quiet && !document.hidden && !reduceMotion;
+      const breezeTarget = (
+        animateScene
+        && document.documentElement.dataset.sceneAction === "breeze"
+      ) ? 1 : 0;
+      if (animateScene) {
+        const baseSmoothing = breezeTarget ? 0.045 : 0.075;
+        const smoothing = 1 - Math.pow(1 - baseSmoothing, deltaScale);
+        breezeLevel += (breezeTarget - breezeLevel) * smoothing;
+      } else {
+        breezeLevel = 0;
+      }
+      if (!animateScene && staticFrameDrawn) {
+        window.requestAnimationFrame(draw);
+        return;
+      }
       context.clearRect(0, 0, width, height);
       stars.forEach((star) => {
-        if (!state.quiet && !reduceMotion) {
-          star.y -= star.speed;
+        if (animateScene) {
+          star.y -= star.speed * (1 - breezeLevel * 0.35) * deltaScale;
+          star.x += breezeLevel * (0.06 + star.speed * 0.45) * deltaScale;
           if (star.y < -4) {
             star.y = height + 4;
             star.x = Math.random() * width;
           }
+          if (star.x > width + 8) {
+            star.x = -8;
+            star.y = Math.random() * height;
+          }
         }
-        const alpha = star.a * (0.65 + Math.sin(time / 900 + star.phase) * 0.35);
+        const alphaTime = animateScene ? time : 0;
+        const alpha = star.a * (0.65 + Math.sin(alphaTime / 900 + star.phase) * 0.35);
+        if (breezeLevel > 0.015) {
+          const streakLength = (3 + star.r * 4) * breezeLevel;
+          context.beginPath();
+          context.strokeStyle = `rgba(188, 206, 255, ${Math.max(0.012, alpha * breezeLevel * 0.18)})`;
+          context.lineWidth = Math.max(0.4, star.r * 0.7);
+          context.lineCap = "round";
+          context.moveTo(star.x - streakLength, star.y + breezeLevel);
+          context.lineTo(star.x, star.y);
+          context.stroke();
+        }
         context.beginPath();
         context.fillStyle = `rgba(192, 200, 255, ${Math.max(0.04, alpha)})`;
         context.shadowBlur = star.r > 0.9 ? 8 : 3;
@@ -2217,10 +2598,15 @@
         context.fill();
       });
       context.shadowBlur = 0;
+      staticFrameDrawn = !animateScene;
       window.requestAnimationFrame(draw);
     };
     resize();
     window.addEventListener("resize", resize);
+    motionQuery.addEventListener?.("change", (event) => {
+      reduceMotion = Boolean(event.matches);
+      staticFrameDrawn = false;
+    });
     window.requestAnimationFrame(draw);
   }
 

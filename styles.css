@@ -70,9 +70,15 @@ html:not([data-view="overview"]) .scene-video {
 .scene-video {
   z-index: 1;
   opacity: 0;
-  filter: none;
-  will-change: opacity;
+  /* H.264 limited-range conversion makes the registered clips about 2.5% darker than the PNG base. */
+  filter: brightness(1.025);
+  will-change: auto;
   transition: opacity 620ms cubic-bezier(0.22, 0.72, 0.24, 1);
+}
+
+.scene-video.is-active,
+.scene-video.is-revealing {
+  will-change: opacity;
 }
 
 .scene-video.is-active {
@@ -86,6 +92,20 @@ html:not([data-view="overview"]) .scene-video {
 
 .scene-video.is-revealing.is-reveal-active {
   opacity: 1;
+}
+
+/* Keep the shared atmosphere above both the PNG base and every video layer. */
+.star-field {
+  z-index: 3;
+}
+
+.scene-vignette {
+  z-index: 4;
+  pointer-events: none;
+}
+
+.scene-grain {
+  z-index: 5;
 }
 
 html:not([data-view="overview"]) .scene-base,

@@ -14,18 +14,101 @@
     "voice_anchor": {
       "x": 0.19531,
       "y": 0.45508
+    },
+    "presence_roi": {
+      "enter": [
+        0.55,
+        0.06,
+        0.9,
+        0.6
+      ],
+      "exit": [
+        0.48,
+        0.01,
+        0.96,
+        0.69
+      ]
     }
   },
   "playback": {
     "transition_ms": 420,
     "mode_transition_ms": 220,
     "idle_gap_ms": [
-      2600,
-      5200
+      3500,
+      9000
     ],
+    "idle_skip_chance": 0.3,
+    "idle_playback_rate": [
+      0.96,
+      1.04
+    ],
+    "presence_actions": [
+      "glance"
+    ],
+    "presence_initial_delay_ms": [
+      5000,
+      9000
+    ],
+    "presence_cooldown_ms": [
+      22000,
+      42000
+    ],
+    "presence_away_threshold_ms": 8000,
+    "mode_gap_ms": {
+      "listening": [
+        1800,
+        4200
+      ],
+      "thinking": [
+        1400,
+        3600
+      ],
+      "speaking": [
+        80,
+        220
+      ]
+    },
     "safe_start_seconds": 0
   },
   "clips": [
+    {
+      "id": "emotion-smile-01",
+      "state": "emotion",
+      "action": "subtle-smile",
+      "src": "assets/scene-pack/clips/emotion/emotion-smile-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 3.46,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "a1bc4ca61e3df5cf8859631751cae4872eae9d9d885d6b301528b7c199e9811c",
+      "source_note": "WorkBuddy 2026-07-29；已截取浅笑段并添加基准首尾过渡",
+      "action_window_seconds": [
+        0.5,
+        2.9
+      ]
+    },
+    {
+      "id": "emotion-smile-02",
+      "state": "emotion",
+      "action": "subtle-smile",
+      "src": "assets/scene-pack/clips/emotion/emotion-smile-02.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 2,
+      "duration_seconds": 5.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "bc8ada9633bd8f1e50a368bf588f146ad8004e1192abbd0010b11a614d40b614",
+      "source_note": "WorkBuddy VideoGen / Kling V3 I2V 2026-07-30；同一基准图约束首尾帧，人工验收浅笑",
+      "action_window_seconds": [
+        0.65,
+        4.35
+      ]
+    },
     {
       "id": "idle-blink-01",
       "state": "idle",
@@ -41,6 +124,11 @@
       "action_window_seconds": [
         0,
         0.33
+      ],
+      "cooldown_seconds": 7,
+      "gap_after_ms": [
+        3600,
+        7200
       ],
       "sha256": "ddb3be49b8dbe6f46037fdecab59ce044750076cf632430d08dc235436599044",
       "source_note": "首尾一致能循环_夜霜安静地用手托着脸_保持原有姿势_胸口随着_2026-07-29T13-37-25.mp4"
@@ -62,7 +150,222 @@
         5.25
       ],
       "sha256": "b862b08d562c479faa6c2c149d24906bad644954e72d0911af5bfe3b8506208b",
+      "cooldown_seconds": 7,
+      "gap_after_ms": [
+        4200,
+        8200
+      ],
       "source_note": "一位名叫夜霜的银蓝色长发少女_安静地用手托着脸颊_保持原有姿_2026-07-29T14-02-52.mp4"
+    },
+    {
+      "id": "idle-blink-03",
+      "state": "idle",
+      "action": "blink",
+      "src": "assets/scene-pack/clips/idle/idle-blink-03.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 8.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "44dce35e3cc16e6e2ff4790ec263bf9004f62ef6f15ccc9ab58f73ff8bba628e",
+      "source_note": "WorkBuddy 2026-07-29；首尾一致的待机眨眼备选",
+      "action_window_seconds": [
+        3.4,
+        5.2
+      ],
+      "cooldown_seconds": 7,
+      "gap_after_ms": [
+        5200,
+        9600
+      ]
+    },
+    {
+      "id": "idle-breathe-01",
+      "state": "idle",
+      "action": "breathe",
+      "src": "assets/scene-pack/clips/idle/idle-breathe-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1.2,
+      "duration_seconds": 5.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "d3efb23ea9c0f934a2d2358ea1542da20615830149953504e7cae800138d4dd7",
+      "source_note": "WorkBuddy VideoGen / Kling V3 I2V 2026-07-30；同一基准图约束首尾帧，人工验收轻微呼吸与短眨眼",
+      "action_window_seconds": [
+        0.55,
+        4.45
+      ],
+      "cooldown_seconds": 10.0,
+      "gap_after_ms": [
+        4500,
+        9000
+      ]
+    },
+    {
+      "id": "idle-breeze-01",
+      "state": "idle",
+      "action": "breeze",
+      "src": "assets/scene-pack/clips/idle/idle-breeze-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 0.2,
+      "duration_seconds": 5.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "98ca3c00227e4a86425020142006d9b3b5304c99e57bf31b5d9dcad9ff3fa4fd",
+      "source_note": "WorkBuddy VideoGen / Kling V3 I2V 2026-07-30；同一基准图约束首尾帧，人工验收微风发丝、耳饰与薄纱微动",
+      "action_window_seconds": [
+        0.55,
+        4.45
+      ],
+      "cooldown_seconds": 90.0,
+      "gap_after_ms": [
+        9000,
+        16000
+      ]
+    },
+    {
+      "id": "idle-glance-01",
+      "state": "idle",
+      "action": "glance",
+      "src": "assets/scene-pack/clips/idle/idle-glance-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 0.55,
+      "duration_seconds": 4.96,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "efa48c898dc883cdd12c3b130b293bd519abae232ef05d242a7a239f5f9f28cd",
+      "source_note": "复用已人工验收的 WorkBuddy VideoGen / Kling V3 I2V 视线素材；同一基准图约束首尾帧",
+      "action_window_seconds": [
+        0.55,
+        4.45
+      ],
+      "cooldown_seconds": 25.0,
+      "gap_after_ms": [
+        6500,
+        12000
+      ]
+    },
+    {
+      "id": "listening-calm-02",
+      "state": "listening",
+      "action": "calm-focus",
+      "src": "assets/scene-pack/clips/listening/listening-calm-02.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 5.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "11583d2fc936606edddd179a6d23e3883bed399ca1a60479d457d9faf63f8271",
+      "source_note": "WorkBuddy VideoGen / Kling V3 I2V 2026-07-30；同一基准图约束首尾帧，人工验收平静注视",
+      "action_window_seconds": [
+        0.55,
+        4.45
+      ]
+    },
+    {
+      "id": "listening-focus-01",
+      "state": "listening",
+      "action": "focus",
+      "src": "assets/scene-pack/clips/listening/listening-focus-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 2.54,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "aa1aa9edfffaf8d7a98be2ec420cc6c5ef65f7d2d73ba0ea21cbfeb263f4d370",
+      "source_note": "WorkBuddy 2026-07-29；已裁掉异常帧并添加基准首尾过渡",
+      "action_window_seconds": [
+        0.5,
+        2.0
+      ]
+    },
+    {
+      "id": "speaking-soft-01",
+      "state": "speaking",
+      "action": "soft-talk",
+      "src": "assets/scene-pack/clips/speaking/speaking-soft-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 4.38,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "ae785d2e07595fd8dfd954a4ebc69ec7d1219e092016731dd212e13c7f824241",
+      "source_note": "WorkBuddy 2026-07-29；已截取克制口型段并添加基准首尾过渡",
+      "action_window_seconds": [
+        0.5,
+        3.8
+      ]
+    },
+    {
+      "id": "speaking-soft-02",
+      "state": "speaking",
+      "action": "soft-talk",
+      "src": "assets/scene-pack/clips/speaking/speaking-soft-02.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 2,
+      "duration_seconds": 5.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "b00a63cd79d469c71489f15b295b90a3ca1a9ce9964423734a4af8af390fd33b",
+      "source_note": "WorkBuddy VideoGen / Kling V3 I2V 2026-07-30；同一基准图约束首尾帧",
+      "action_window_seconds": [
+        0.55,
+        4.45
+      ]
+    },
+    {
+      "id": "thinking-glance-01",
+      "state": "thinking",
+      "action": "glance",
+      "src": "assets/scene-pack/clips/thinking/thinking-glance-01.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 1,
+      "duration_seconds": 4.38,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "71dce50f4b584243eeff7463e7835eaa30127ae7447dd1e769e5989707f3f6da",
+      "source_note": "WorkBuddy 2026-07-29；已截取思考视线段并添加基准首尾过渡",
+      "action_window_seconds": [
+        0.5,
+        3.8
+      ]
+    },
+    {
+      "id": "thinking-glance-02",
+      "state": "thinking",
+      "action": "glance",
+      "src": "assets/scene-pack/clips/thinking/thinking-glance-02.mp4",
+      "enabled": true,
+      "playback": "once",
+      "weight": 2,
+      "duration_seconds": 5.0,
+      "fps": 24.0,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "9fc9e3a26096c2cfead13ee6fe16e2c85aa4c511ef50dcf1b523900705eb981e",
+      "source_note": "WorkBuddy VideoGen / Kling V3 I2V 2026-07-30；同一基准图约束首尾帧，人工验收视线变化",
+      "action_window_seconds": [
+        0.55,
+        4.45
+      ]
     }
   ]
 }
